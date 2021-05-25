@@ -1,4 +1,4 @@
-# sleepsort
+# sleep-sort
 
 A sorting algorithm you might actually remember in a job interview.
 
