@@ -5,43 +5,24 @@ import (
 	"time"
 )
 
-type sorter struct {
-	unsorted []int
-	sorted   chan int
-	waiter   *sync.WaitGroup
+type NonNegativeIntegers interface {
+	uint | uint8 | uint16 | uint32 | uint64
 }
 
-func NewSorter(unsorted ...int) *sorter {
-	waiter := &sync.WaitGroup{}
-	waiter.Add(len(unsorted))
-	return &sorter{
-		unsorted: unsorted,
-		sorted:   make(chan int),
-		waiter:   waiter,
+func Sort[T NonNegativeIntegers](input ...T) (result []T) {
+	waiter := new(sync.WaitGroup)
+	waiter.Add(len(input))
+	sorted := make(chan T)
+	for _, i := range input {
+		go func(i T) {
+			time.Sleep(time.Millisecond * time.Duration(i))
+			sorted <- i
+			waiter.Done()
+		}(i)
 	}
-}
-func (s *sorter) Sorted() (result []int) {
-	for value := range s.Sort() {
-		result = append(result, value)
+	go func() { waiter.Wait(); close(sorted) }()
+	for s := range sorted {
+		result = append(result, s)
 	}
 	return result
-}
-func (s *sorter) Sort() chan int {
-	go s.sort()
-	go s.wait()
-	return s.sorted
-}
-func (s *sorter) sort() {
-	for _, unsorted := range s.unsorted {
-		go s.sleep(unsorted)
-	}
-}
-func (s *sorter) sleep(value int) {
-	time.Sleep(time.Second * time.Duration(value))
-	s.sorted <- value
-	s.waiter.Done()
-}
-func (s *sorter) wait() {
-	s.waiter.Wait()
-	close(s.sorted)
 }
